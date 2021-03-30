@@ -19,12 +19,12 @@
 %global _disable_lto 1
 
 %ifarch %{arm} %{ix86} %{x86_64} aarch64
-%global optflags %{optflags} -O3 -falign-functions=32 -fno-math-errno -fno-trapping-math -fno-strict-aliasing -fPIC -Wno-gnu-statement-expression -fuse-ld=bfd
+%global optflags %{optflags} -O3 -falign-functions=32 -fno-math-errno -fno-trapping-math -fno-strict-aliasing -fPIC -Wno-gnu-statement-expression
 %endif
 %ifarch %{arm} %{riscv}
-%global optflags %{optflags} -O2 -fno-strict-aliasing -fPIC -Wno-gnu-statement-expression -fuse-ld=bfd
+%global optflags %{optflags} -O2 -fno-strict-aliasing -fPIC -Wno-gnu-statement-expression
 %endif
-%global ldflags %{ldflags} -fPIC -fuse-ld=bfd
+%global ldflags %{ldflags} -fPIC
 
 # (tpg) enable PGO build
 %ifnarch riscv64 %{arm}
@@ -35,7 +35,7 @@
 
 Summary:	Crypt Library for DES, MD5, Blowfish and others
 Name:		libxcrypt
-Version:	4.4.17
+Version:	4.4.18
 Release:	2
 License:	LGPLv2+
 Group:		System/Libraries
@@ -43,6 +43,7 @@ Url:		https://github.com/besser82/libxcrypt
 Source0:	https://github.com/besser82/libxcrypt/archive/%{name}-%{version}.tar.gz
 #Patch0:		libxcrypt-4.0.1-strict-aliasing.patch
 BuildRequires:	findutils
+BuildRequires:	perl(open)
 
 %description
 Libxcrypt is a replacement for libcrypt, which comes with the GNU C
@@ -194,23 +195,6 @@ mv %{buildroot}/%{_lib}/*.a %{buildroot}%{_libdir}/
 find %{buildroot} -name 'libow*' -print -delete
 
 %check
-# Make sure the symbol versioning script worked
-%if %{with compat32}
-if ! nm $(ls build32/.libs/libcrypt.so.%{major}* |head -n1) |grep -q 'crypt_r@GLIBC_2'; then
-    echo 'Symbol versioning script seems to have messed up.'
-    echo 'Make sure this is fixed unless you want to break pam.'
-    echo 'You may want to try a different 32-bit ld.'
-    exit 1
-fi
-make check -C build32
-%endif
-
-if ! nm $(ls build/.libs/libcrypt.so.%{major}* |head -n1) |grep -q 'crypt_r@GLIBC_2'; then
-    echo 'Symbol versioning script seems to have messed up.'
-    echo 'Make sure this is fixed unless you want to break pam.'
-    echo 'You may want to try a different ld.'
-    exit 1
-fi
 # FIXME as of libxcrypt 4.4.3-2, clang 7.0.1-1, binutils 2.32-1
 # make check fails on 32-bit ARM:
 #
