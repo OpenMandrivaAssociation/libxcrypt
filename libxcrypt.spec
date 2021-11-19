@@ -13,11 +13,6 @@
 %define devel32name libcrypt-devel
 %define static32name libcrypt-static-devel
 
-# We ship a static library here -- LTO bytecode rather than
-# object code in .o files packaged into a static library breaks
-# using different compilers
-%global _disable_lto 1
-
 %ifarch %{arm} %{ix86} %{x86_64} aarch64
 %global optflags %{optflags} -O3 -falign-functions=32 -fno-math-errno -fno-trapping-math -fno-strict-aliasing -fPIC -Wno-gnu-statement-expression
 %endif
@@ -195,6 +190,49 @@ mv %{buildroot}/%{_lib}/*.a %{buildroot}%{_libdir}/
 # compat thing.  Software needing it to be build can
 # be patched easily to just link against '-lcrypt'.
 find %{buildroot} -name 'libow*' -print -delete
+
+%if 0
+# (tpg) convert static archives and object files compiled with LLVM and LTO to ELF format
+# taken from https://src.fedoraproject.org/rpms/redhat-rpm-config/blob/rawhide/f/brp-llvm-compile-lto-elf
+TMPDIR=$(mktemp -d)
+
+check_convert_bitcode () {
+  local file_name=$(realpath ${1})
+  local file_type=$(file ${file_name})
+
+  if [[ "${file_type}" == *"LLVM IR bitcode"*  ]]; then
+    # check for an indication that the bitcode was
+    # compiled with -flto
+    llvm-bcanalyzer -dump ${file_name} | grep -xP '.*\-flto((?!-fno-lto).)*' 2>&1 > /dev/null
+    if [ $? -eq 0 ]; then
+      printf '%s\n' "Compiling LLVM bitcode file ${file_name}."
+      # create path to file in temp dir
+      # move file to temp dir with llvm .bc extension for clang
+      mkdir -p ${TMPDIR}/$(dirname ${file_name})
+      mv $file_name ${TMPDIR}/${file_name}.bc
+      clang -c %{optflags} -fno-lto -Wno-unused-command-line-argument ${TMPDIR}/${file_name}.bc -o ${file_name}
+    fi
+  elif [[ "${file_type}" == *"current ar archive"*  ]]; then
+    printf '%s\n' "Unpacking ar archive ${file_name} to check for LLVM bitcode components."
+    # create archive stage for objects
+    local archive_stage=$(mktemp -d)
+    local archive=${file_name}
+    cd ${archive_stage}
+    ar x ${archive}
+    for archived_file in $(find -not -type d); do
+      check_convert_bitcode ${archived_file}
+      printf '%s\n' "Repacking ${archived_file} into ${archive}."
+      ar r ${archive} ${archived_file}
+    done
+    cd ..
+  fi
+}
+
+printf '$s\n' "Checking for LLVM bitcode artifacts"
+for i in $(find %{buildroot} -type f -name "*.[ao]"); do
+  check_convert_bitcode ${i}
+done
+%endif
 
 %check
 # FIXME as of libxcrypt 4.4.3-2, clang 7.0.1-1, binutils 2.32-1
