@@ -31,8 +31,8 @@
 
 Summary:	Crypt Library for DES, MD5, Blowfish and others
 Name:		libxcrypt
-Version:	4.4.27
-Release:	2
+Version:	4.4.28
+Release:	1
 License:	LGPLv2+
 Group:		System/Libraries
 Url:		https://github.com/besser82/libxcrypt
@@ -143,7 +143,6 @@ FFLAGS="$CFLAGS" \
 FCFLAGS="$CFLAGS" \
 LDFLAGS="%{build_ldflags} -fprofile-generate" \
 %configure  \
-    --libdir=/%{_lib} \
     --enable-shared \
     --disable-static \
     --enable-hashes=all \
@@ -169,7 +168,6 @@ CXXFLAGS="%{optflags} -fprofile-use=$PROFDATA -Wno-error=profile-instr-out-of-da
 LDFLAGS="%{build_ldflags} -fprofile-use=$PROFDATA -Wno-error=profile-instr-out-of-date -Wno-error=profile-instr-unprofiled -Wno-error=backend-plugin" \
 %endif
 %configure  \
-    --libdir=/%{_lib} \
     --enable-shared \
     --enable-static \
     --enable-hashes=all \
@@ -183,9 +181,6 @@ LDFLAGS="%{build_ldflags} -fprofile-use=$PROFDATA -Wno-error=profile-instr-out-o
 %make_install -C build32
 %endif
 %make_install -C build
-mkdir -p %{buildroot}%{_libdir}/pkgconfig/
-mv %{buildroot}/%{_lib}/pkgconfig/*.pc %{buildroot}%{_libdir}/pkgconfig/
-mv %{buildroot}/%{_lib}/*.a %{buildroot}%{_libdir}/
 
 # We do not need libowcrypt.*, since it is a SUSE
 # compat thing.  Software needing it to be build can
@@ -213,13 +208,13 @@ make check -C build || (cat test-suite.log && exit 1)
 %endif
 
 %files -n %{libname}
-/%{_lib}/lib*.so.%{major}*
+%{_libdir}/lib*.so.%{major}*
 
 %files -n %{develname}
 %doc AUTHORS NEWS
 %{_includedir}/*.h
-/%{_lib}/libcrypt.so
-/%{_lib}/libxcrypt.so
+%{_libdir}/libcrypt.so
+%{_libdir}/libxcrypt.so
 %{_libdir}/pkgconfig/*.pc
 %doc %{_mandir}/man3/crypt*.3*
 %doc %{_mandir}/man5/crypt.5*
