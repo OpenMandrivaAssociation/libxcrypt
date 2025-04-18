@@ -1,6 +1,17 @@
+getrandom-fallbacks is disabled because the -Wl,-wrap mechanism this test
+uses doesn't work when -fprofile-generate already redirects some of the
+functions being redirected.
 diff -up libxcrypt-4.4.35/Makefile.am.omv~ libxcrypt-4.4.35/Makefile.am
 --- libxcrypt-4.4.35/Makefile.am.omv~	2023-06-06 20:55:49.411103508 +0200
 +++ libxcrypt-4.4.35/Makefile.am	2023-06-06 20:56:50.053465798 +0200
+@@ -379,7 +379,6 @@ check_PROGRAMS = \
+ 	test/gensalt \
+ 	test/gensalt-extradata \
+ 	test/gensalt-nthash \
+-	test/getrandom-fallbacks \
+ 	test/getrandom-interface \
+ 	test/preferred-method \
+ 	test/short-outbuf \
 @@ -446,7 +446,11 @@ endif
  TESTS = $(check_PROGRAMS)
  

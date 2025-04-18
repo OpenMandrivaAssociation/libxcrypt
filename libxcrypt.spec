@@ -5,8 +5,17 @@
 %bcond_with compat32
 %endif
 
+# Disabling the old API calls saves only around 2 kB
+# Not worth breaking compatibility over that.
+%bcond_without old_apis
+
+%if %{with old_apis}
 %define major 1
-%define libname %mklibname crypt %{major}
+%else
+%define major 2
+%endif
+%define oldlibname %mklibname crypt 1
+%define libname %mklibname crypt
 %define develname %mklibname crypt -d
 %define staticname %mklibname crypt -d -s
 %define lib32name libcrypt%{major}
@@ -16,7 +25,9 @@
 %global optflags %{optflags} -O3
 
 # (tpg) use LLVM/polly for polyhedra optimization and automatic vector code generation
-%define pollyflags -mllvm -polly -mllvm -polly-position=early -mllvm -polly-parallel=true -fopenmp -fopenmp-version=50 -mllvm -polly-dependences-computeout=5000000 -mllvm -polly-detect-profitability-min-per-loop-insts=40 -mllvm -polly-tiling=true -mllvm -polly-prevect-width=256 -mllvm -polly-vectorizer=stripmine -mllvm -polly-omp-backend=LLVM -mllvm -polly-num-threads=0 -mllvm -polly-scheduling=dynamic -mllvm -polly-scheduling-chunksize=1 -mllvm -polly-invariant-load-hoisting -mllvm -polly-loopfusion-greedy -mllvm -polly-run-inliner -mllvm -polly-run-dce -mllvm -polly-enable-delicm=true -mllvm -extra-vectorizer-passes -mllvm -enable-cond-stores-vec -mllvm -slp-vectorize-hor-store -mllvm -enable-loopinterchange -mllvm -enable-loop-distribute -mllvm -enable-unroll-and-jam -mllvm -enable-loop-flatten -mllvm -interleave-small-loop-scalar-reduction -mllvm -unroll-runtime-multi-exit -mllvm -aggressive-ext-opt
+%define pollyflags -mllvm -polly -mllvm -polly-position=early -mllvm -polly-parallel=true -fopenmp -fopenmp-version=50 -mllvm -polly-dependences-computeout=5000000 -mllvm -polly-detect-profitability-min-per-loop-insts=40 -mllvm -polly-tiling=true -mllvm -polly-prevect-width=256 -mllvm -polly-vectorizer=stripmine -mllvm -polly-omp-backend=LLVM -mllvm -polly-num-threads=0 -mllvm -polly-scheduling=dynamic -mllvm -polly-scheduling-chunksize=1 -mllvm -polly-invariant-load-hoisting -mllvm -polly-loopfusion-greedy -mllvm -polly-run-inliner -mllvm -polly-run-dce -mllvm -polly-enable-delicm=true -mllvm -extra-vectorizer-passes -mllvm -enable-cond-stores-vec -mllvm -slp-vectorize-hor-store -mllvm -enable-loopinterchange -mllvm -enable-loop-distribute -mllvm -enable-unroll-and-jam -mllvm -enable-loop-flatten -mllvm -unroll-runtime-multi-exit -mllvm -aggressive-ext-opt
+
+%undefine _debugsource_packages
 
 # (tpg) enable PGO build
 %if ! %{cross_compiling}
@@ -27,7 +38,7 @@
 
 Summary:	Extended crypt library for DES, MD5, Blowfish and others
 Name:		libxcrypt
-Version:	4.4.36
+Version:	4.4.38
 Release:	1
 License:	LGPLv2+
 Group:		System/Libraries
@@ -54,6 +65,14 @@ Group:		System/Libraries
 Obsoletes:	%{mklibname xcrypt 2} < 4.0.0
 Provides:	glibc-crypt_blowfish = 1.3
 Provides:	eglibc-crypt_blowfish = 1.3
+%if %{with old_apis}
+%if "%{_lib}" == "lib64"
+Provides:	libcrypt.so.2()(64bit)
+%else
+Provides:	libcrypt.so.2
+%endif
+%endif
+%rename %{oldlibname}
 
 %description -n %{libname}
 libxcrypt is a modern library for one-way hashing of passwords.
@@ -92,6 +111,9 @@ to develop software using %{name} without requiring
 Summary:	Crypt Library for DES, MD5, Blowfish and others (32-bit)
 Group:		System/Libraries
 BuildRequires:	libc6
+%if %{with old_apis}
+Provides:	libcrypt.so.2
+%endif
 
 %description -n %{lib32name}
 Libxcrypt is a replacement for libcrypt, which comes with the GNU C
@@ -136,7 +158,12 @@ export CFLAGS="$CFLAGS -fno-strict-aliasing"
     --enable-static \
     --enable-hashes=all \
     --disable-failure-tokens \
-    --enable-obsolete-api=yes || (cat config.log && exit 1)
+%if %{with old_apis}
+    --enable-obsolete-api=yes \
+%else
+    --disable-obsolete-api \
+%endif
+    || (cat config.log && exit 1)
 
 %make_build
 cd ..
@@ -158,7 +185,12 @@ LDFLAGS="%{build_ldflags} -fprofile-generate" \
     --disable-static \
     --enable-hashes=all \
     --disable-failure-tokens \
-    --enable-obsolete-api=yes || (cat config.log && exit 1)
+%if %{with old_apis}
+    --enable-obsolete-api=yes \
+%else
+    --disable-obsolete-api \
+%endif
+    || (cat config.log && exit 1)
 
 %make_build
 
@@ -184,7 +216,12 @@ LDFLAGS="%{build_ldflags} -fprofile-use=$PROFDATA -Wno-error=profile-instr-out-o
     --enable-static \
     --enable-hashes=all \
     --disable-failure-tokens \
-    --enable-obsolete-api=yes || (cat config.log && exit 1)
+%if %{with old_apis}
+    --enable-obsolete-api=yes \
+%else
+    --disable-obsolete-api \
+%endif
+    || (cat config.log && exit 1)
 
 %make_build
 
@@ -198,6 +235,16 @@ LDFLAGS="%{build_ldflags} -fprofile-use=$PROFDATA -Wno-error=profile-instr-out-o
 # compat thing.  Software needing it to be build can
 # be patched easily to just link against '-lcrypt'.
 find %{buildroot} -name 'libow*' -print -delete
+
+# The only difference between libcrypt.so.1 (as we're building it)
+# and libcrypt.so.2 (as some other distros are building it) is the
+# removal of a few old APIs that saves a whole 2 kB.
+# Since .1 is a superset of .2, putting a symlink there gives us
+# binary compatibility with distros that have opted to go for .2.
+ln -s libcrypt.so.1 %{buildroot}%{_libdir}/libcrypt.so.2
+%if %{with compat32}
+ln -s libcrypt.so.1 %{buildroot}%{_prefix}/lib/libcrypt.so.2
+%endif
 
 %if ! %{cross_compiling}
 %check
@@ -223,6 +270,9 @@ make check -C build || (cat test-suite.log && exit 1)
 
 %files -n %{libname}
 %{_libdir}/lib*.so.%{major}*
+%if %{with old_apis}
+%{_libdir}/lib*.so.2
+%endif
 
 %files -n %{develname}
 %doc AUTHORS NEWS
@@ -240,6 +290,9 @@ make check -C build || (cat test-suite.log && exit 1)
 %if %{with compat32}
 %files -n %{lib32name}
 %{_prefix}/lib/lib*.so.%{major}*
+%if %{with old_apis}
+%{_prefix}/lib/lib*.so.2
+%endif
 
 %files -n %{devel32name}
 %{_prefix}/lib/libcrypt.so
