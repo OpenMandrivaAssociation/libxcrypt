@@ -5,6 +5,11 @@
 %bcond_with compat32
 %endif
 
+# lld 21 doesn't support versioned symbols in LTO bytecode
+# ld.lld: error: ld-temp.o <inline asm>:1:30: unexpected token
+# .lto_discard encrypt, encrypt@GLIBC_2.17, setkey, setkey@GLIBC_2.17
+%define _disable_lto 1
+
 # Disabling the old API calls saves only around 2 kB
 # Not worth breaking compatibility over that.
 %bcond_without old_apis
@@ -38,7 +43,7 @@
 
 Summary:	Extended crypt library for DES, MD5, Blowfish and others
 Name:		libxcrypt
-Version:	4.4.38
+Version:	4.5.1
 Release:	1
 License:	LGPLv2+
 Group:		System/Libraries
