@@ -51,6 +51,11 @@ Url:		https://github.com/besser82/libxcrypt
 Source0:	https://github.com/besser82/libxcrypt/releases/download/v%{version}/libxcrypt-%{version}.tar.xz
 Patch0:		libxcrypt-disable-broken-tests.patch
 # (tpg) upstream patches
+BuildRequires:	autoconf
+BuildRequires:	automake
+BuildRequires:	libtool-base
+BuildRequires:	slibtool
+BuildRequires:	make
 BuildRequires:	findutils
 BuildRequires:	perl(open)
 
