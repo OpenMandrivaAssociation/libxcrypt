@@ -1,0 +1,48 @@
+diff -up libxcrypt-4.5.2/lib/crypt-gost-yescrypt.c.omv~ libxcrypt-4.5.2/lib/crypt-gost-yescrypt.c
+--- libxcrypt-4.5.2/lib/crypt-gost-yescrypt.c.omv~	2026-03-02 16:37:44.304029573 +0100
++++ libxcrypt-4.5.2/lib/crypt-gost-yescrypt.c	2026-03-02 16:39:27.911800631 +0100
+@@ -131,7 +131,7 @@ crypt_gost_yescrypt_rn (const char *phra
+   intbuf->outbuf[1] = 'g';
+ 
+   /* extract yescrypt output from "$y$param$salt$output" */
+-  char *hptr = strchr ((const char *) intbuf->retval + 3, '$');
++  char *hptr = strchr ((char *) intbuf->retval + 3, '$');
+   if (!hptr)
+     {
+       errno = EINVAL;
+@@ -147,7 +147,7 @@ crypt_gost_yescrypt_rn (const char *phra
+ 
+   /* decode yescrypt output into its raw 256-bit form */
+   size_t ylen = sizeof (intbuf->y);
+-  if (!decode64 (intbuf->y, &ylen, (uint8_t *) hptr, strlen (hptr)) ||
++  if (!decode64 (intbuf->y, &ylen, (const uint8_t *) hptr, strlen (hptr)) ||
+       ylen != sizeof (intbuf->y))
+     {
+       errno = EINVAL;
+@@ -167,12 +167,12 @@ crypt_gost_yescrypt_rn (const char *phra
+   gost_hash256 ((const uint8_t *) phrase, phr_size, intbuf->hk, &intbuf->gostbuf.ctx);
+   gost_hmac256 (intbuf->hk, sizeof (intbuf->hk),
+                 (const uint8_t *) setting,
+-                (size_t) ((uint8_t *) hptr - intbuf->retval),
++                (size_t) ((const uint8_t *) hptr - intbuf->retval),
+                 intbuf->interm, &intbuf->gostbuf);
+   outer_gost_hmac256 (intbuf->interm, sizeof (intbuf->interm),
+                       intbuf->y, sizeof (intbuf->y), intbuf->y, &intbuf->gostbuf);
+ 
+-  encode64 ((uint8_t *) hptr, o_size - (size_t) ((uint8_t *) hptr - intbuf->retval),
++  encode64 ((uint8_t *) hptr, o_size - (size_t) ((const uint8_t *) hptr - intbuf->retval),
+             intbuf->y, sizeof (intbuf->y));
+ 
+   strcpy_or_abort (output, o_size, intbuf->outbuf);
+diff -up libxcrypt-4.5.2/lib/crypt-sm3-yescrypt.c.omv~ libxcrypt-4.5.2/lib/crypt-sm3-yescrypt.c
+--- libxcrypt-4.5.2/lib/crypt-sm3-yescrypt.c.omv~	2026-03-02 16:39:38.026650610 +0100
++++ libxcrypt-4.5.2/lib/crypt-sm3-yescrypt.c	2026-03-02 16:39:42.502152950 +0100
+@@ -136,7 +136,7 @@ crypt_sm3_yescrypt_rn (const char *phras
+   intbuf->outbuf[3] = '3';
+ 
+   /* extract yescrypt output from "$y$param$salt$output" */
+-  char *hptr = strchr ((const char *) intbuf->retval + 3, '$');
++  char *hptr = strchr ((char *) intbuf->retval + 3, '$');
+   if (!hptr)
+     {
+       errno = EINVAL;
